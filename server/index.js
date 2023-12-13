@@ -7,7 +7,7 @@ const app = express()
 
 const server = http.createServer(app);
 
-app.get('/api', (req, res) => {
+app.get('/healthy', (req, res) => {
     return res.json({'message':'success'})
 })
 
@@ -20,8 +20,20 @@ const io = new Server(server, {
 io.on("connection", (socket) => {
     console.log('user connected: ' + socket.id);
 
+    socket.on('join_room', (data) => {
+        socket.join(data);
+    })
+
+    socket.on('leave_room', (data) => {
+        socket.leave(data)
+    })
+
     socket.on('send_message', (data) => {
-        socket.emit('receive_message', data);
+        socket.to(data.room).emit('receive_message', data.message);
+    })
+
+    socket.on('message_everyone', (data) => {
+        socket.broadcast.emit('receive_message', data);
     })
 
     socket.on('disconnect', (socket) => {
