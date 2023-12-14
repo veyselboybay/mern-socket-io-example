@@ -2,10 +2,13 @@ const express = require('express')
 const { Server } = require('socket.io')
 const http = require('http')
 const cors = require('cors')
+const { socketController } = require('./socket_controllers/controller')
 
 const app = express()
 
 const server = http.createServer(app);
+
+app.use(cors());
 
 app.get('/healthy', (req, res) => {
     return res.json({'message':'success'})
@@ -17,28 +20,20 @@ const io = new Server(server, {
     }
 })
 
+io.use((socket, next) => {
+    const authToken = socket.handshake.query.token;
+    if (socket.handshake.query && authToken) {
+        const isValid = authToken === 'random_token';
+        if (!isValid) {
+            return next(new Error('Authentication_Error1'))
+        }
+        return next();
+    }
+    next(new Error('Authentication_Error2'))
+})
+
 io.on("connection", (socket) => {
-    console.log('user connected: ' + socket.id);
-
-    socket.on('join_room', (data) => {
-        socket.join(data);
-    })
-
-    socket.on('leave_room', (data) => {
-        socket.leave(data)
-    })
-
-    socket.on('send_message', (data) => {
-        socket.to(data.room).emit('receive_message', data.message);
-    })
-
-    socket.on('message_everyone', (data) => {
-        socket.broadcast.emit('receive_message', data);
-    })
-
-    socket.on('disconnect', (socket) => {
-        console.log('user disconnected: ' + socket.id);
-    })
+    socketController(socket)
 })
 
 

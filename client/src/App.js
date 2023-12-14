@@ -1,9 +1,11 @@
-import logo from './logo.svg';
+
 import './App.css';
 import { useEffect, useState } from 'react'
 import io from 'socket.io-client'
 
-const socket = io.connect('http://localhost:3001');
+const socket = io.connect('http://localhost:3001', {
+  query: {token:'random_token'}
+});
 
 function App() {
   const [message, setMessage] = useState('')
@@ -31,8 +33,19 @@ function App() {
     socket.on('receive_message', (data) => {
       setMessages(prev => ([...prev, data]))
     })
+
+
     return () => socket.off('receive_message')
-  },[socket])
+  }, [socket])
+
+  useEffect(() => {
+    socket.on('connect_error', (err) => {
+      return alert(err.message)
+    })
+
+    return () => socket.off('connect_error')
+  }, [socket])
+  
   return (
     <div className="App">
       <h1>React - Socket.io Example</h1>
@@ -54,7 +67,7 @@ function App() {
       {messages.length > 0 && messages.map(message => {
         return <p key={message}>{message}</p>
       })}
-      {messages.length == 0 && <p style={{color:'black'}}>No Messages yet!</p>}
+      {messages.length === 0 && <p style={{color:'black'}}>No Messages yet!</p>}
       
     </div>
   );
